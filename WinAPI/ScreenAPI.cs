@@ -254,8 +254,12 @@ namespace SharpTools
                                 if (reference.GetPixel(x, y) != screen.GetPixel(i + x, j + y))
                                 {
                                     location_match = false;
+                                    break;
                                 }
                             }
+                            
+                            if (!location_match)
+                                break;
                         }
 
                         if (location_match)
