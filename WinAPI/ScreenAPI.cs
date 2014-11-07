@@ -214,7 +214,7 @@ namespace SharpTools
         /// <param name="height">Rectangle height (0 = screen height)</param>
         /// <returns>Returns the requested screen region</returns>
 
-        public static Bitmap takeScreenshot(int x, int y, int width = 0, int height = 0)
+        public static Bitmap takeScreenshot(int x = 0, int y = 0, int width = 0, int height = 0)
         {
             if (width == 0) { width = System.Windows.Forms.Screen.PrimaryScreen.Bounds.Width; }
             if (height == 0) { height = System.Windows.Forms.Screen.PrimaryScreen.Bounds.Height; }
@@ -223,6 +223,47 @@ namespace SharpTools
             screenShotGraphics.CopyFromScreen(x, y, 0, 0, new Size(width, height), CopyPixelOperation.SourceCopy);
             screenShotGraphics.Dispose();
             return screenShotBMP;
+        }
+
+        /// <summary>
+        /// Find an element on the screen and returns the coordinates of its top-left pixel.
+        /// If nothing was found, (-1, -1) is returned. Allows to locate a control on screen.
+        /// </summary>
+        /// <param name="reference">bitmap representing the control to find</param>
+        /// <returns>the control's coordinates or (-1, -1) if not found</returns>
+
+        public static Point findBitmap(Bitmap reference)
+        {
+            Bitmap screen = takeScreenshot();
+
+            if (screen.Width >= reference.Width && screen.Height >= reference.Height)
+            {
+                for (int i = 0; i + reference.Width < screen.Width; i++)
+                {
+                    for (int j = 0; j + reference.Height < screen.Height; j++)
+                    {
+                        bool location_match = true;
+
+                        for (int x = 0; x < reference.Width && location_match; x++)
+                        {
+                            for (int y = 0; y < reference.Height && location_match; y++)
+                            {
+                                if (reference.GetPixel(x, y) != screen.GetPixel(i + x, j + y))
+                                {
+                                    location_match = false;
+                                }
+                            }
+                        }
+
+                        if (location_match)
+                        {
+                            return new Point(i, j);
+                        }
+                    }
+                }
+            }
+
+            return new Point(-1, -1);
         }
 
         /// <summary>
