@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Drawing;
 
 namespace SharpTools
 {
@@ -40,6 +41,10 @@ namespace SharpTools
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         private static extern IntPtr SendMessage(IntPtr hWnd, UInt32 Msg, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        static extern bool GetWindowRect(IntPtr handle, out RECT lpRect);
 
         private struct POINTAPI
         {
@@ -194,6 +199,19 @@ namespace SharpTools
         public static void setWindowBound(IntPtr window, int new_x, int new_y, int new_width, int new_height)
         {
             MoveWindow(window, new_x, new_y, new_width, new_height, true);
+        }
+
+        /// <summary>
+        /// Get dimensions and position of the specified window
+        /// </summary>
+        /// <param name="window">Window handle to get bounds from</param>
+        /// <returns>Window Bounds</returns>
+
+        public static Rectangle getWindowBounds(IntPtr window)
+        {
+            RECT winRect = new RECT();
+            GetWindowRect(window, out winRect);
+            return new Rectangle(winRect.left, winRect.top, winRect.right - winRect.left + 1, winRect.bottom - winRect.top + 1);
         }
 
         /// <summary>
