@@ -230,11 +230,14 @@ namespace SharpTools
         /// If nothing was found, (-1, -1) is returned. Allows to locate a control on screen.
         /// </summary>
         /// <param name="reference">bitmap representing the control to find</param>
+        /// <param name="zone">search on a specific region of the screen</param>
         /// <returns>the control's coordinates or (-1, -1) if not found</returns>
 
-        public static Point findBitmap(Bitmap reference)
+        public static Point findBitmap(Bitmap reference, Rectangle? zone = null)
         {
-            Bitmap screen = takeScreenshot();
+            Bitmap screen = zone.HasValue
+                ? takeScreenshot(zone.Value.X, zone.Value.Y, zone.Value.Width, zone.Value.Height)
+                : takeScreenshot();
 
             if (screen.Width >= reference.Width && screen.Height >= reference.Height)
             {
