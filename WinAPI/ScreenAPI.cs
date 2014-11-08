@@ -231,9 +231,9 @@ namespace SharpTools
         /// </summary>
         /// <param name="reference">bitmap representing the control to find</param>
         /// <param name="zone">search on a specific region of the screen</param>
-        /// <returns>the control's coordinates or (-1, -1) if not found</returns>
+        /// <returns>the control's coordinates or null if not found</returns>
 
-        public static Point findBitmap(Bitmap reference, Rectangle? zone = null)
+        public static Point? findBitmap(Bitmap reference, Rectangle? zone = null)
         {
             Bitmap screen = zone.HasValue
                 ? takeScreenshot(zone.Value.X, zone.Value.Y, zone.Value.Width, zone.Value.Height)
@@ -260,13 +260,39 @@ namespace SharpTools
 
                         if (location_match)
                         {
+                            screen.Dispose();
                             return new Point(i, j);
                         }
                     }
                 }
             }
 
-            return new Point(-1, -1);
+            screen.Dispose();
+            return null;
+        }
+
+        /// <summary>
+        /// Check if the specified bitmap is on the right position of the screen
+        /// </summary>
+        /// <param name="reference">Reference bitmap</param>
+        /// <param name="position">Position</param>
+
+        public static bool checkBitmap(Bitmap reference, Point position)
+        {
+            Bitmap screenBitmap = takeScreenshot(position.X, position.Y, reference.Width, reference.Height);
+            for (int x = 0; x < reference.Width; x++)
+            {
+                for (int y = 0; y < reference.Height; y++)
+                {
+                    if (reference.GetPixel(x, y) != screenBitmap.GetPixel(x, y))
+                    {
+                        screenBitmap.Dispose();
+                        return false;
+                    }
+                }
+            }
+            screenBitmap.Dispose();
+            return true;
         }
 
         /// <summary>
