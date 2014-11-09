@@ -294,6 +294,21 @@ namespace SharpTools
             screenBitmap.Dispose();
             return true;
         }
+        
+        /// <summary>
+        /// Draw the provided image at the provided position on screen.
+        /// The image will remain as long as this part of screen hasn't been refreshed.
+        /// </summary>
+        /// <param name="image">Image to draw</param>
+        /// <param name="position">Location on screen to draw to</param>
+
+        public static void DrawImage(Image image, Point position)
+        {
+            using (Graphics g = Graphics.FromHwnd(IntPtr.Zero))
+            {
+                g.DrawImage(image, position);
+            }
+        }
 
         /// <summary>
         /// Get the current display mode of the main display device (throws NullReferenceException for device not found)
