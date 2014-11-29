@@ -7,7 +7,7 @@ namespace SharpTools
 {
     /// <summary>
     /// This class parses JSON data and returns an object describing that data.
-    /// Really lightweight JSON handling by ORelio - (c) 2013
+    /// Really lightweight JSON handling by ORelio - (c) 2013 - 2014
     /// </summary>
 
     static class Json
@@ -119,6 +119,18 @@ namespace SharpTools
                         cursorpos++;
                         break;
 
+                    //Number
+                    case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9': case '.':
+                        data = new JSONData(JSONData.DataType.String);
+                        StringBuilder sb = new StringBuilder();
+                        while ((toparse[cursorpos] >= '0' && toparse[cursorpos] <= '9') || toparse[cursorpos] == '.')
+                        {
+                            sb.Append(toparse[cursorpos]);
+                            cursorpos++;
+                        }
+                        data.StringValue = sb.ToString();
+                        break;
+
                     //Boolean : true
                     case 't':
                         data = new JSONData(JSONData.DataType.String);
@@ -143,6 +155,11 @@ namespace SharpTools
                         cursorpos++;
                         return String2Data(toparse, ref cursorpos);
                 }
+                while (cursorpos < toparse.Length
+                    && (char.IsWhiteSpace(toparse[cursorpos])
+                    || toparse[cursorpos] == '\r'
+                    || toparse[cursorpos] == '\n'))
+                    cursorpos++;
                 return data;
             }
             catch (IndexOutOfRangeException)
