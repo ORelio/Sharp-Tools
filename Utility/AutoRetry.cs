@@ -1,11 +1,14 @@
 ﻿using System;
+using System.Threading;
 
 namespace SharpTools
 {
     /// <summary>
     /// Allow easy retries on pieces of code
-    /// By ORelio - (c) 2014 - CDDL 1.0
     /// </summary>
+    /// <remarks>
+    /// By ORelio - (c) 2014 - CDDL 1.0
+    /// </remarks>
     public class AutoRetry
     {
         /// <summary>
@@ -37,12 +40,13 @@ namespace SharpTools
             {
                 success = true;
                 try { action(); }
-                catch
+                catch (Exception e)
                 {
                     success = false;
                     if (attempts <= 1)
                     {
-                        throw;
+                        if (!(e is ThreadAbortException))
+                            throw;
                     }
                     else if (onError != null)
                     {
