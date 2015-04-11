@@ -221,33 +221,37 @@ namespace SharpTools
             writing_lock = true;
             if (reading)
             {
-                ConsoleColor fore = Console.ForegroundColor;
-                ConsoleColor back = Console.BackgroundColor;
-                string buf = buffer;
-                string buf2 = buffer2;
-                ClearLineAndBuffer();
-                if (Console.CursorLeft == 0)
+                try
                 {
-                    Console.CursorLeft = Console.BufferWidth - 1;
-                    Console.CursorTop--;
-                    Console.Write(' ');
-                    Console.CursorLeft = Console.BufferWidth - 1;
-                    Console.CursorTop--;
+                    string buf = buffer;
+                    string buf2 = buffer2;
+                    ClearLineAndBuffer();
+                    if (Console.CursorLeft == 0)
+                    {
+                        Console.CursorLeft = Console.BufferWidth - 1;
+                        Console.CursorTop--;
+                        Console.Write(' ');
+                        Console.CursorLeft = Console.BufferWidth - 1;
+                        Console.CursorTop--;
+                    }
+                    else Console.Write("\b \b");
+                    Console.Write(text);
+                    buffer = buf;
+                    buffer2 = buf2;
+                    Console.Write(">" + buffer);
+                    if (buffer2.Length > 0)
+                    {
+                        Console.Write(buffer2 + " \b");
+                        for (int i = 0; i < buffer2.Length; i++) { GoBack(); }
+                    }
                 }
-                else Console.Write("\b \b");
-                Console.Write(text);
-                Console.ForegroundColor = ConsoleColor.Gray;
-                Console.BackgroundColor = ConsoleColor.Black;
-                buffer = buf;
-                buffer2 = buf2;
-                Console.Write(">" + buffer);
-                if (buffer2.Length > 0)
+                catch (ArgumentOutOfRangeException)
                 {
-                    Console.Write(buffer2 + " \b");
-                    for (int i = 0; i < buffer2.Length; i++) { GoBack(); }
+                    //Console resized: Try again
+                    Console.Write('\n');
+                    writing_lock = false;
+                    Write(text);
                 }
-                Console.ForegroundColor = fore;
-                Console.BackgroundColor = back;
             }
             else Console.Write(text);
             writing_lock = false;
