@@ -6,16 +6,27 @@ using System.Net.Sockets;
 using System.IO;
 using System.IO.Compression;
 using System.Net;
+using System.Net.Security;
 
 namespace SharpTools
 {
     /// <summary>
     /// Utility class for performing raw HTTP requests
     /// HTTP Implementation from scratch built directly upon TcpClient.
-    /// By ORelio - (c) 2014 - Available under the CDDL-1.0 license
+    /// By ORelio - (c) 2014-2015 - Available under the CDDL-1.0 license
     /// </summary>
     public static class HTTPRawRequest
     {
+        /// <summary>
+        /// Default port for a HTTP request
+        /// </summary>
+        public const int HTTP = 80;
+
+        /// <summary>
+        /// Default port for a HTTPS request
+        /// </summary>
+        public const int HTTPS = 443;
+
         /// <summary>
         /// Get a random user agent for making requests
         /// </summary>
@@ -63,7 +74,7 @@ namespace SharpTools
             List<string> headers = GetGETHeaders(host, resourceUrl, referrer, userAgent, cookies);
             headers[0] = String.Format("POST {0} HTTP/1.1", resourceUrl);
             headers.Add("Content-Type: application/x-www-form-urlencoded");
-            
+
             List<string> tmpFormData = new List<string>();
             foreach (var field in formData)
                 tmpFormData.Add(WebUtility.HtmlEncode(field.Key + '=' + field.Value));
@@ -129,15 +140,37 @@ namespace SharpTools
         {
             //Connect to remote host
             TcpClient client = new TcpClient(host, port);
+            Stream stream = client.GetStream();
 
-            //Build and send headers
-            client.Client.Send(Encoding.ASCII.GetBytes(String.Join("\r\n", requestHeaders.ToArray()) + "\r\n\r\n"));
+            //Using HTTPS ?
+            if (port == HTTPS)
+            {
+                //Authenticate Host
+                SslStream ssl = new SslStream(client.GetStream());
+                ssl.AuthenticateAsClient(host);
+                stream = ssl;
 
-            //Send body if there is a body to send
-            if (requestBody != null) { client.Client.Send(requestBody); }
+                //Build and send headers
+                ssl.Write(Encoding.ASCII.GetBytes(String.Join("\r\n", requestHeaders.ToArray()) + "\r\n\r\n"));
+
+                //Send body if there is a body to send
+                if (requestBody != null)
+                {
+                    ssl.Write(requestBody);
+                    ssl.Flush();
+                }
+            }
+            else //HTTP
+            {
+                //Build and send headers
+                client.Client.Send(Encoding.ASCII.GetBytes(String.Join("\r\n", requestHeaders.ToArray()) + "\r\n\r\n"));
+
+                //Send body if there is a body to send
+                if (requestBody != null) { client.Client.Send(requestBody); }
+            }
 
             //Read response headers
-            string statusLine = Encoding.ASCII.GetString(ReadLine(client.GetStream()));
+            string statusLine = Encoding.ASCII.GetString(ReadLine(stream));
             if (statusLine.StartsWith("HTTP/1.1"))
             {
                 int responseStatusCode = 0;
@@ -151,7 +184,7 @@ namespace SharpTools
                     string line = "";
                     do
                     {
-                        line = Encoding.ASCII.GetString(ReadLine(client.GetStream()));
+                        line = Encoding.ASCII.GetString(ReadLine(stream));
                         responseHeaders.Add(line);
                     } while (line.Length > 0);
 
@@ -173,7 +206,7 @@ namespace SharpTools
                         do
                         {
                             //Read all data chunk by chunk, first line is length, second line is data
-                            string headerLine = Encoding.ASCII.GetString(ReadLine(client.GetStream()));
+                            string headerLine = Encoding.ASCII.GetString(ReadLine(stream));
                             bool lengthConverted = true;
                             try { chunkLength = Convert.ToInt32(headerLine, 16); }
                             catch (FormatException) { lengthConverted = false; }
@@ -181,7 +214,7 @@ namespace SharpTools
                             {
                                 if (chunkLength > 0)
                                 {
-                                    byte[] chunkContent = ReadLine(client.GetStream());
+                                    byte[] chunkContent = ReadLine(stream);
                                     responseBuffer.AddRange(chunkContent);
                                 }
                             }
@@ -205,13 +238,13 @@ namespace SharpTools
                         int receivedLength = 0;
                         byte[] received = new byte[responseLength];
                         while (receivedLength < responseLength)
-                            receivedLength += client.Client.Receive(received, receivedLength, responseLength - receivedLength, SocketFlags.None);
+                            receivedLength += stream.Read(received, receivedLength, responseLength - receivedLength);
                         responseBody = received;
                     }
                     else if (!responseHeaders.Contains("Connection: keep-alive"))
                     {
                         //Connection close, full read is possible
-                        responseBody = ReadFully(client.GetStream());
+                        responseBody = ReadFully(stream);
                     }
                     else
                     {
