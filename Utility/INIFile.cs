@@ -14,13 +14,13 @@ namespace SharpTools
     {
         /// <summary>
         /// Parse a INI file into a dictionary.
-        /// INI sections and keys will be converted to lowercase.
         /// Values can be accessed like this: dict["section"]["setting"]
         /// </summary>
         /// <param name="iniFile">INI file to parse</param>
+        /// <param name="lowerCase">INI sections and keys will be converted to lowercase unless this parameter is set to false</param>
         /// <exception cref="IOException">If failed to read the file</exception>
         /// <returns>Parsed data from INI file</returns>
-        public static Dictionary<string, Dictionary<string, string>> ParseFile(string iniFile)
+        public static Dictionary<string, Dictionary<string, string>> ParseFile(string iniFile, bool lowerCase = true)
         {
             var iniContents = new Dictionary<string, Dictionary<string, string>>();
             string[] lines = File.ReadAllLines(iniFile, Encoding.UTF8);
@@ -32,11 +32,15 @@ namespace SharpTools
                 {
                     if (line[0] == '[' && line[line.Length - 1] == ']')
                     {
-                        iniSection = line.Substring(1, line.Length - 2).ToLower();
+                        iniSection = line.Substring(1, line.Length - 2);
+                        if (lowerCase)
+                            iniSection = iniSection.ToLower();
                     }
                     else
                     {
-                        string argName = line.Split('=')[0].ToLower();
+                        string argName = line.Split('=')[0];
+                        if (lowerCase)
+                            argName = argName.ToLower();
                         if (line.Length > (argName.Length + 1))
                         {
                             string argValue = line.Substring(argName.Length + 1);
