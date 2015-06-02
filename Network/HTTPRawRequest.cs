@@ -44,12 +44,16 @@ namespace SharpTools
                 "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36", //Chrome 36 Windows 7
                 "Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/38.0.2125.104 Safari/537.36 OPR/25.0.1614.63", //Opera 25 Windows 8.1
                 "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.13 Safari/537.36", //Chrome 39 Mac OS
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/40.0.2214.111 Safari/537.36", //Chrome 40 Mac OS
                 "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_4) AppleWebKit/537.77.4 (KHTML, like Gecko) Version/7.0.5 Safari/537.77.4", //Safari 7 Mac OS
                 "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_5) AppleWebKit/536.30.1 (KHTML, like Gecko) Version/6.0.5 Safari/536.30.1", //Safari 6 Mac OS
                 "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.9; rv:32.0) Gecko/20100101 Firefox/32.0", //FF 32 Mac OS
                 "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:32.0) Gecko/20100101 Firefox/32.0", //FF 32 Ubuntu
                 "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:28.0) Gecko/20100101 Firefox/28.0", //FF 28 Windows 7
-                "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:32.0) Gecko/20100101 Firefox/32.0" //FF 32 Windows 7
+                "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:32.0) Gecko/20100101 Firefox/32.0", //FF 32 Windows 7
+                "Mozilla/5.0 (Windows NT 6.1; rv:35.0) Gecko/20100101 Firefox/35.0", //FF 35 Windows 7 x86
+                "Mozilla/5.0 (Windows NT 6.2; WOW64; rv:27.0) Gecko/20100101 Firefox/27.0", //FF 27 Windows 8.0
+                "Mozilla/5.0 (Windows NT 6.3; WOW64; rv:36.0) Gecko/20100101 Firefox/36.0" //FF 36 Windows 8.1
             };
 
             return userAgents[new Random().Next(0, userAgents.Length)];
@@ -142,16 +146,19 @@ namespace SharpTools
             TcpClient client = new TcpClient(host, port);
             Stream stream = client.GetStream();
 
+            //Prepare HTTP headers
+            byte[] headersRaw = Encoding.ASCII.GetBytes(String.Join("\r\n", requestHeaders.ToArray()) + "\r\n\r\n");
+
             //Using HTTPS ?
             if (port == HTTPS)
             {
-                //Authenticate Host
+                //Authenticate Host / Mono users will need to run mozroots once
                 SslStream ssl = new SslStream(client.GetStream());
                 ssl.AuthenticateAsClient(host);
                 stream = ssl;
 
                 //Build and send headers
-                ssl.Write(Encoding.ASCII.GetBytes(String.Join("\r\n", requestHeaders.ToArray()) + "\r\n\r\n"));
+                ssl.Write(headersRaw);
 
                 //Send body if there is a body to send
                 if (requestBody != null)
@@ -163,10 +170,11 @@ namespace SharpTools
             else //HTTP
             {
                 //Build and send headers
-                client.Client.Send(Encoding.ASCII.GetBytes(String.Join("\r\n", requestHeaders.ToArray()) + "\r\n\r\n"));
+                client.Client.Send(headersRaw);
 
                 //Send body if there is a body to send
-                if (requestBody != null) { client.Client.Send(requestBody); }
+                if (requestBody != null)
+                    client.Client.Send(requestBody);
             }
 
             //Read response headers
@@ -212,10 +220,19 @@ namespace SharpTools
                             catch (FormatException) { lengthConverted = false; }
                             if (lengthConverted)
                             {
-                                if (chunkLength > 0)
+                                int dataRead = 0;
+                                while (dataRead < chunkLength)
                                 {
                                     byte[] chunkContent = ReadLine(stream);
+                                    dataRead += chunkContent.Length;
                                     responseBuffer.AddRange(chunkContent);
+                                    if (dataRead < chunkLength)
+                                    {
+                                        //The chunk contains \r\n
+                                        responseBuffer.Add((byte)'\r');
+                                        responseBuffer.Add((byte)'\n');
+                                        dataRead += 2;
+                                    }
                                 }
                             }
                             else
