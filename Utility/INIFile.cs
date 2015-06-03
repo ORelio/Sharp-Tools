@@ -60,7 +60,8 @@ namespace SharpTools
         /// <param name="iniFile">File to write into</param>
         /// <param name="contents">Data to put into the file</param>
         /// <param name="description">INI file description, inserted as a comment on first line of the INI file</param>
-        public static void WriteFile(string iniFile, Dictionary<string, Dictionary<string, string>> contents, string description = null)
+        /// <param name="autoCase">Automatically change first char of section and keys to uppercase</param>
+        public static void WriteFile(string iniFile, Dictionary<string, Dictionary<string, string>> contents, string description = null, bool autoCase = true)
         {
             List<string> lines = new List<string>();
             if (!String.IsNullOrWhiteSpace(description))
@@ -71,10 +72,10 @@ namespace SharpTools
                     lines.Add("");
                 if (!String.IsNullOrEmpty(section.Key))
                 {
-                    lines.Add("[" + char.ToUpper(section.Key[0]) + section.Key.Substring(1) + ']');
+                    lines.Add("[" + (autoCase ? char.ToUpper(section.Key[0]) + section.Key.Substring(1) : section.Key) + ']');
                     foreach (var item in section.Value)
                         if (!String.IsNullOrEmpty(item.Key))
-                            lines.Add(char.ToUpper(item.Key[0]) + item.Key.Substring(1) + '=' + item.Value);
+                            lines.Add((autoCase ? char.ToUpper(item.Key[0]) + item.Key.Substring(1) : item.Key) + '=' + item.Value);
                 }
             }
             File.WriteAllLines(iniFile, lines, Encoding.UTF8);
