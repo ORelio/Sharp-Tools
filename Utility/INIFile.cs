@@ -28,7 +28,7 @@ namespace SharpTools
             foreach (string lineRaw in lines)
             {
                 string line = lineRaw.Split('#')[0].Trim();
-                if (line.Length > 0)
+                if (line.Length > 0 && line[0] != ';')
                 {
                     if (line[0] == '[' && line[line.Length - 1] == ']')
                     {
