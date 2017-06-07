@@ -108,6 +108,24 @@ namespace SharpTools
                                         data.StringValue += char.ConvertFromUtf32(int.Parse(toparse.Substring(cursorpos + 2, 4), System.Globalization.NumberStyles.HexNumber));
                                         cursorpos += 6; continue;
                                     }
+                                    else if (toparse[cursorpos + 1] == 'n')
+                                    {
+                                        data.StringValue += '\n';
+                                        cursorpos += 2;
+                                        continue;
+                                    }
+                                    else if (toparse[cursorpos + 1] == 'r')
+                                    {
+                                        data.StringValue += '\r';
+                                        cursorpos += 2;
+                                        continue;
+                                    }
+                                    else if (toparse[cursorpos + 1] == 't')
+                                    {
+                                        data.StringValue += '\t';
+                                        cursorpos += 2;
+                                        continue;
+                                    }
                                     else cursorpos++; //Normal character escapement \"
                                 }
                                 catch (IndexOutOfRangeException) { cursorpos++; } // \u01<end of string>
