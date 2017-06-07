@@ -23,6 +23,18 @@ namespace SharpTools
         }
 
         /// <summary>
+        /// Perform the specified action, waiting between attempts if an exception is caught.
+        /// If last attempt fails, exception is not caught.
+        /// </summary>
+        /// <param name="action">Action to run</param>
+        /// <param name="onErrorWait">Time to wait between attempts in case of failure</param>
+        /// <param name="attempts">Maximum amount of attempts</param>
+        public static void Perform(Action action, TimeSpan onErrorWait, int attempts = 3)
+        {
+            Perform(action, () => { Thread.Sleep(onErrorWait); }, attempts);
+        }
+
+        /// <summary>
         /// Perform the specified action, retrying after performing the specified onError action if an exception is caught.
         /// If last attempt fails, exception is not caught and onError is not performed.
         /// </summary>
