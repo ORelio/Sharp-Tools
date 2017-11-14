@@ -4,7 +4,7 @@ Sharp Tools
 This repository contains a collection of C# classes useful for various purposes.<br/>
 These classes were initially developed for some personal projects.
 
-##License
+## License
 
 Unless specifically stated, the code is from me and available under the CDDL-1.0 license.<br/>
 Else, the license and original author are mentioned in source file headers.<br/>
