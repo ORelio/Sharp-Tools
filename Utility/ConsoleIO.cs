@@ -84,7 +84,6 @@ namespace SharpTools
                     case ConsoleKey.Home:
                     case ConsoleKey.End:
                     case ConsoleKey.Delete:
-                    case ConsoleKey.Oem6:
                     case ConsoleKey.DownArrow:
                     case ConsoleKey.UpArrow:
                     case ConsoleKey.Tab:
@@ -157,8 +156,6 @@ namespace SharpTools
                                 GoRight();
                                 RemoveOneChar();
                             }
-                            break;
-                        case ConsoleKey.Oem6:
                             break;
                         case ConsoleKey.DownArrow:
                             if (previous.Count > 0)
