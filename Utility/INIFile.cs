@@ -82,7 +82,7 @@ namespace SharpTools
         }
 
         /// <summary>
-        /// Convert an integer to string or return 0 if failed to parse
+        /// Convert an integer from a string or return 0 if failed to parse
         /// </summary>
         /// <param name="str">String to parse</param>
         /// <returns>Int value</returns>
