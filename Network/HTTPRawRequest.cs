@@ -7,13 +7,14 @@ using System.IO;
 using System.IO.Compression;
 using System.Net;
 using System.Net.Security;
+using Microsoft.Win32;
 
 namespace SharpTools
 {
     /// <summary>
     /// Utility class for performing raw HTTP requests
     /// HTTP Implementation from scratch built directly upon TcpClient.
-    /// By ORelio - (c) 2014-2015 - Available under the CDDL-1.0 license
+    /// By ORelio - (c) 2014-2018 - Available under the CDDL-1.0 license
     /// </summary>
     public static class HTTPRawRequest
     {
@@ -52,6 +53,7 @@ namespace SharpTools
                 "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:28.0) Gecko/20100101 Firefox/28.0", //FF 28 Windows 7
                 "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:32.0) Gecko/20100101 Firefox/32.0", //FF 32 Windows 7
                 "Mozilla/5.0 (Windows NT 6.1; rv:35.0) Gecko/20100101 Firefox/35.0", //FF 35 Windows 7 x86
+                "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:27.0) Gecko/20100101 Firefox/27.0", //FF 27 Windows 7
                 "Mozilla/5.0 (Windows NT 6.2; WOW64; rv:27.0) Gecko/20100101 Firefox/27.0", //FF 27 Windows 8.0
                 "Mozilla/5.0 (Windows NT 6.3; WOW64; rv:36.0) Gecko/20100101 Firefox/36.0" //FF 36 Windows 8.1
             };
@@ -60,7 +62,7 @@ namespace SharpTools
         }
 
         /// <summary>
-        /// Get a set of headers for an HTTP POST request
+        /// Get a set of headers for an HTTP POST request (x-www-form-urlencoded)
         /// </summary>
         /// <param name="formData">Data of the submitted form</param>
         /// <param name="host">Target host</param>
@@ -71,7 +73,7 @@ namespace SharpTools
         /// <param name="postDataResult">Will contain encoded data to submit with request</param>
         /// <returns>HTTP Headers</returns>
         public static List<string> GetPOSTHeaders(
-            IEnumerable<KeyValuePair<string, string>> formData, ref byte[] postDataResult, string host,
+            IEnumerable<KeyValuePair<string, string>> formData, out byte[] postDataResult, string host,
             string resourceUrl, string referrer = null, string userAgent = null,
             IEnumerable<KeyValuePair<string, string>> cookies = null)
         {
@@ -85,6 +87,60 @@ namespace SharpTools
             string formDataBuilt = String.Join("&", tmpFormData.ToArray());
             postDataResult = Encoding.ASCII.GetBytes(formDataBuilt);
 
+            headers.Add("Content-Length: " + postDataResult.Length);
+
+            return headers;
+        }
+
+        /// <summary>
+        /// Get a set of headers for an HTTP POST request containing files (multipart/form-data)
+        /// </summary>
+        /// <param name="formData">Data of the submitted form</param>
+        /// <param name="fileData">Files of the submitted form, where value is path to file</param>
+        /// <param name="host">Target host</param>
+        /// <param name="resourceUrl">Requested resource</param>
+        /// <param name="userAgent">User agent of the request eg firefox</param>
+        /// <param name="referrer">Referrer of the request</param>
+        /// <param name="cookies">Cookies for the request</param>
+        /// <param name="postDataResult">Will contain encoded data to submit with request</param>
+        /// <remarks>This method is intended to handle small files only. File content is stored in RAM.</remarks>
+        /// <returns>HTTP Headers</returns>
+        public static List<string> GetPOSTHeaders(
+            IEnumerable<KeyValuePair<string, string>> formData,
+            IEnumerable<KeyValuePair<string, string>> fileData,
+            out byte[] postDataResult, string host,
+            string resourceUrl, string referrer = null, string userAgent = null,
+            IEnumerable<KeyValuePair<string, string>> cookies = null)
+        {
+            string boundary = "----------" + Guid.NewGuid().ToString().Replace("-", "").Substring(0, 15);
+            List<byte> postDataTemp = new List<byte>();
+
+            List<string> headers = GetGETHeaders(host, resourceUrl, referrer, userAgent, cookies);
+            headers[0] = String.Format("POST {0} HTTP/1.1", resourceUrl);
+            headers.Add("Content-Type: multipart/form-data; boundary=" + boundary);
+
+            foreach (var field in formData)
+            {
+                postDataTemp.AddRange(Encoding.UTF8.GetBytes(String.Format("--{0}\r\n", boundary)));
+                postDataTemp.AddRange(Encoding.UTF8.GetBytes(String.Format(
+                    "Content-Disposition: form-data; name=\"{0}\";\r\n\r\n{1}\r\n",
+                    field.Key, field.Value)));
+            }
+
+            foreach (var file in fileData)
+            {
+                postDataTemp.AddRange(Encoding.UTF8.GetBytes(String.Format("--{0}\r\n", boundary)));
+                postDataTemp.AddRange(Encoding.UTF8.GetBytes(String.Format(
+                    "Content-Disposition: form-data; name=\"{0}\"; filename=\"{1}\";\r\n",
+                    file.Key, Path.GetFileName(file.Value))));
+                postDataTemp.AddRange(Encoding.UTF8.GetBytes(String.Format(
+                    "Content-Type: {0}\r\n\r\n",
+                    FindMimeType(file.Value))));
+                postDataTemp.AddRange(File.ReadAllBytes(file.Value));
+            }
+
+            postDataTemp.AddRange(Encoding.UTF8.GetBytes(String.Format("\r\n--{0}--\r\n", boundary)));
+            postDataResult = postDataTemp.ToArray();
             headers.Add("Content-Length: " + postDataResult.Length);
 
             return headers;
@@ -347,6 +403,48 @@ namespace SharpTools
                 else result.Add((byte)b);
             }
             return result.ToArray();
+        }
+
+        /// <summary>
+        /// Attempts to query registry for content-type of suppied file name.
+        /// </summary>
+        /// <param name="fileName">File name</param>
+        /// <remarks>Code from http://salient.codeplex.com</remarks>
+        /// <returns>Content type for the specified file type, or default content type</returns>
+        private static string FindMimeType(string fileName)
+        {
+            try
+            {
+                RegistryKey key = Registry.ClassesRoot.OpenSubKey(@"MIME\Database\Content Type");
+
+                if (key != null)
+                {
+                    foreach (string keyName in key.GetSubKeyNames())
+                    {
+                        RegistryKey subKey = key.OpenSubKey(keyName);
+                        if (subKey != null)
+                        {
+                            string subKeyValue = (string)subKey.GetValue("Extension");
+
+                            if (!string.IsNullOrEmpty(subKeyValue))
+                            {
+                                if (string.Compare(
+                                    Path.GetExtension(fileName).ToUpperInvariant(),
+                                    subKeyValue.ToUpperInvariant(),
+                                    StringComparison.OrdinalIgnoreCase) == 0)
+                                {
+                                    if (!String.IsNullOrEmpty(keyName))
+                                        return keyName;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            //Unknown file type or failed to retrieve content type
+            return "application/octet-stream";
         }
     }
 
