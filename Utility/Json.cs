@@ -168,6 +168,15 @@ namespace SharpTools
                         if (toparse[cursorpos] == 'e') { cursorpos++; data.StringValue = "false"; }
                         break;
 
+                    //Null field
+                    case 'n':
+                        data = new JSONData(JSONData.DataType.String);
+                        cursorpos++;
+                        if (toparse[cursorpos] == 'u') { cursorpos++; }
+                        if (toparse[cursorpos] == 'l') { cursorpos++; }
+                        if (toparse[cursorpos] == 'l') { cursorpos++; data.StringValue = "null"; }
+                        break;
+
                     //Unknown data
                     default:
                         cursorpos++;
