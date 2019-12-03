@@ -8,7 +8,7 @@ namespace SharpTools
 {
     /// <summary>
     /// File system utilities for applications running as administrator
-    /// By ORelio (c) 2018 - CDDL 1.0
+    /// By ORelio (c) 2018-2019 - CDDL 1.0
     /// </summary>
     public static class FileSystemAdmin
     {
@@ -17,25 +17,26 @@ namespace SharpTools
         /// </summary>
         /// <param name="path">File or directory</param>
         /// <param name="recursive">Recursively take ownership of directory contents</param>
+        /// <param name="currentUser">Grant control to the current user instead of the Administrators group (may reduce system security!)</param>
         /// <exception cref="System.Security.AccessControl.PrivilegeNotHeldException">Insufficient process privileges to take ownership</exception>
         /// <seealso>https://stackoverflow.com/a/12999567</seealso>
         /// <seealso>https://stackoverflow.com/a/16216587</seealso>
-        public static void GrantAll(string path, bool recursive = false)
+        public static void GrantAll(string path, bool recursive = false, bool currentUser = false)
         {
             Privilege processPrivilege = new Privilege(Privilege.TakeOwnership);
-            SecurityIdentifier adminSid = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
+            IdentityReference adminSid = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
+            IdentityReference userAccount = new NTAccount(Environment.UserDomainName, Environment.UserName);
 
             try
             {
                 processPrivilege.Enable();
                 FileSecurity fileSecurity = new FileSecurity();
-                //fileSecurity.SetOwner(new NTAccount(Environment.UserDomainName, Environment.UserName));
-                fileSecurity.SetOwner(adminSid);
+                fileSecurity.SetOwner(currentUser ? userAccount : adminSid);
                 File.SetAccessControl(path, fileSecurity);
 
                 DirectoryInfo dInfo = new DirectoryInfo(path);
                 DirectorySecurity dSecurity = dInfo.GetAccessControl();
-                dSecurity.AddAccessRule(new FileSystemAccessRule(adminSid,
+                dSecurity.AddAccessRule(new FileSystemAccessRule(currentUser ? userAccount : adminSid,
                     FileSystemRights.FullControl,
                     InheritanceFlags.ObjectInherit | InheritanceFlags.ContainerInherit,
                     PropagationFlags.NoPropagateInherit,
