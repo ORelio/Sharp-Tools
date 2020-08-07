@@ -23,11 +23,7 @@ namespace MinecraftClient
         /// <param name="handler">Callback for file changes</param>
         public FileMonitor(string folder, string filename, FileSystemEventHandler handler)
         {
-            if (Settings.DebugMessages)
-            {
-                string callerClass = new System.Diagnostics.StackFrame(1).GetMethod().DeclaringType.Name;
-                ConsoleIO.WriteLineFormatted(String.Format("§8[{0}] Initializing FileSystemWatcher for file: {1}", callerClass, Path.Combine(folder, filename)));
-            }
+            //Console.WriteLine("[{0}] Initializing FileSystemWatcher for file: {1}", callerClass, Path.Combine(folder, filename));
 
             try
             {
@@ -41,11 +37,7 @@ namespace MinecraftClient
             }
             catch
             {
-                if (Settings.DebugMessages)
-                {
-                    string callerClass = new System.Diagnostics.StackFrame(1).GetMethod().DeclaringType.Name;
-                    ConsoleIO.WriteLineFormatted(String.Format("§8[{0}] Failed to initialize FileSystemWatcher, retrying using Polling", callerClass));
-                }
+                //Console.WriteLine("§8[{0}] Failed to initialize FileSystemWatcher, retrying using Polling", callerClass);
 
                 monitor = null;
                 polling = new Thread(() => PollingThread(folder, filename, handler));
