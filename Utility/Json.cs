@@ -79,6 +79,9 @@ namespace SharpTools
                     case '[':
                         data = new JSONData(JSONData.DataType.Array);
                         cursorpos++;
+                        while (char.IsWhiteSpace(toparse[cursorpos])
+                            || toparse[cursorpos] == '\r'
+                            || toparse[cursorpos] == '\n') { cursorpos++; }
                         while (toparse[cursorpos] != ']')
                         {
                             if (toparse[cursorpos] == ',') { cursorpos++; }
