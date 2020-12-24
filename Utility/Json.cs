@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -7,15 +7,13 @@ namespace SharpTools
 {
     /// <summary>
     /// This class parses JSON data and returns an object describing that data.
-    /// Really lightweight JSON handling by ORelio - (c) 2013 - 2014
+    /// Really lightweight JSON handling by ORelio - (c) 2013 - 2020
     /// </summary>
-
     static class Json
     {
         /// <summary>
         /// Parse some JSON and return the corresponding JSON object
         /// </summary>
-
         public static JSONData ParseJson(string json)
         {
             int cursorpos = 0;
@@ -26,7 +24,6 @@ namespace SharpTools
         /// The class storing unserialized JSON data
         /// The data can be an object, an array or a string
         /// </summary>
-
         public class JSONData
         {
             public enum DataType { Object, Array, String };
@@ -49,18 +46,19 @@ namespace SharpTools
         /// </summary>
         /// <param name="toparse">String to parse</param>
         /// <param name="cursorpos">Cursor start (set to 0 for function init)</param>
-
         private static JSONData String2Data(string toparse, ref int cursorpos)
         {
             try
             {
                 JSONData data;
+                SkipSpaces(toparse, ref cursorpos);
                 switch (toparse[cursorpos])
                 {
                     //Object
                     case '{':
                         data = new JSONData(JSONData.DataType.Object);
                         cursorpos++;
+                        SkipSpaces(toparse, ref cursorpos);
                         while (toparse[cursorpos] != '}')
                         {
                             if (toparse[cursorpos] == '"')
@@ -79,6 +77,7 @@ namespace SharpTools
                     case '[':
                         data = new JSONData(JSONData.DataType.Array);
                         cursorpos++;
+                        SkipSpaces(toparse, ref cursorpos);
                         while (toparse[cursorpos] != ']')
                         {
                             if (toparse[cursorpos] == ',') { cursorpos++; }
@@ -99,10 +98,10 @@ namespace SharpTools
                                 try //Unicode character \u0123
                                 {
                                     if (toparse[cursorpos + 1] == 'u'
-                                        && isHex(toparse[cursorpos + 2])
-                                        && isHex(toparse[cursorpos + 3])
-                                        && isHex(toparse[cursorpos + 4])
-                                        && isHex(toparse[cursorpos + 5]))
+                                        && IsHex(toparse[cursorpos + 2])
+                                        && IsHex(toparse[cursorpos + 3])
+                                        && IsHex(toparse[cursorpos + 4])
+                                        && IsHex(toparse[cursorpos + 5]))
                                     {
                                         //"abc\u0123abc" => "0123" => 0123 => Unicode char n°0123 => Add char to string
                                         data.StringValue += char.ConvertFromUtf32(int.Parse(toparse.Substring(cursorpos + 2, 4), System.Globalization.NumberStyles.HexNumber));
@@ -182,11 +181,7 @@ namespace SharpTools
                         cursorpos++;
                         return String2Data(toparse, ref cursorpos);
                 }
-                while (cursorpos < toparse.Length
-                    && (char.IsWhiteSpace(toparse[cursorpos])
-                    || toparse[cursorpos] == '\r'
-                    || toparse[cursorpos] == '\n'))
-                    cursorpos++;
+                SkipSpaces(toparse, ref cursorpos);
                 return data;
             }
             catch (IndexOutOfRangeException)
@@ -196,11 +191,24 @@ namespace SharpTools
         }
 
         /// <summary>
-        /// Small function for checking if a char is an hexadecimal char (0-9 A-F a-f)
+        /// Check if a char is an hexadecimal char (0-9 A-F a-f)
         /// </summary>
         /// <param name="c">Char to test</param>
         /// <returns>True if hexadecimal</returns>
+        private static bool IsHex(char c) { return ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')); }
 
-        private static bool isHex(char c) { return ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')); }
+        /// <summary>
+        /// Advance the cursor to skip white spaces and line breaks
+        /// </summary>
+        /// <param name="toparse">String to parse</param>
+        /// <param name="cursorpos">Cursor position to update</param>
+        private static void SkipSpaces(string toparse, ref int cursorpos)
+        {
+            while (cursorpos < toparse.Length
+                    && (char.IsWhiteSpace(toparse[cursorpos])
+                    || toparse[cursorpos] == '\r'
+                    || toparse[cursorpos] == '\n'))
+                cursorpos++;
+        }
     }
 }
