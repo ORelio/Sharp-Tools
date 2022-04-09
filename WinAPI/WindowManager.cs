@@ -10,9 +10,8 @@ namespace SharpTools
 {
     /// <summary>
     /// Programatically interact with on-screen windows using Windows API
-    /// By ORelio - (c) 2013-2014 - Available under the CDDL-1.0 license
+    /// By ORelio - (c) 2013-2022 - Available under the CDDL-1.0 license
     /// </summary>
-
     public static class WindowManager
     {
         [System.Runtime.InteropServices.DllImport("user32.dll")]
@@ -78,7 +77,6 @@ namespace SharpTools
         /// <param name="use_exe_name_instead">Use exe name instead of window name</param>
         /// <param name="partial_match">If true, will match windows or processes that *contains* the provided name</param>
         /// <returns>Returns TRUE if the handle was found</returns>
-
         public static bool GetProcessMainWindow(string name, ref IntPtr window, bool use_exe_name_instead = false, bool partial_match = false)
         {
             foreach (Process p in Process.GetProcesses())
@@ -87,7 +85,7 @@ namespace SharpTools
                 {
                     //Get window title OR exe name
                     IntPtr temp_window = p.MainWindowHandle;
-                    string to_compare = use_exe_name_instead ? GetWindowExename(temp_window) : GetWindowTitle(temp_window);
+                    string to_compare = use_exe_name_instead ? GetWindowExeName(temp_window) : GetWindowTitle(temp_window);
                     if (to_compare == null) { continue; }
 
                     //Convert strings to lower
@@ -110,7 +108,6 @@ namespace SharpTools
         /// Close the specified window
         /// </summary>
         /// <param name="window">Window handle to close</param>
-
         public static void CloseWindow(IntPtr window)
         {
             const UInt32 WM_CLOSE = 0x0010;
@@ -122,7 +119,6 @@ namespace SharpTools
         /// </summary>
         /// <param name="window">Window handle to get title from</param>
         /// <returns>Returns the title or NULL if an error occured</returns>
-
         public static string GetWindowTitle(IntPtr window)
         {
             const int nChars = 1024;
@@ -139,8 +135,7 @@ namespace SharpTools
         /// </summary>
         /// <param name="window">Window handle to get exe name from</param>
         /// <returns>Return the requested exe name or NULL if an error occured</returns>
-
-        public static string GetWindowExename(IntPtr window)
+        public static string GetWindowExeName(IntPtr window)
         {
             try
             {
@@ -178,7 +173,6 @@ namespace SharpTools
         /// <param name="window">Window handle to move</param>
         /// <param name="new_x">New X coordinate</param>
         /// <param name="new_y">New Y coordinate</param>
-
         public static void moveWindow(IntPtr window, int new_x, int new_y)
         {
             const UInt32 SWP_NOSIZE = 1;
@@ -195,7 +189,6 @@ namespace SharpTools
         /// <param name="new_y">New Y coordinate</param>
         /// <param name="new_width">New width</param>
         /// <param name="new_height">New height</param>
-
         public static void setWindowBound(IntPtr window, int new_x, int new_y, int new_width, int new_height)
         {
             MoveWindow(window, new_x, new_y, new_width, new_height, true);
@@ -206,7 +199,6 @@ namespace SharpTools
         /// </summary>
         /// <param name="window">Window handle to get bounds from</param>
         /// <returns>Window Bounds</returns>
-
         public static Rectangle getWindowBounds(IntPtr window)
         {
             RECT winRect = new RECT();
@@ -219,7 +211,6 @@ namespace SharpTools
         /// </summary>
         /// <param name="window">Window handle to affect</param>
         /// <param name="ontop">True for Always on Top, false for normal window</param>
-
         public static void setWindowOnTop(IntPtr window, bool ontop)
         {
             IntPtr HWND_TOPMOST = new IntPtr(-1);
@@ -235,7 +226,6 @@ namespace SharpTools
         /// </summary>
         /// <param name="window">Window handle to affect</param>
         /// <param name="newstate">New state for the window</param>
-
         public static void setWindowState(IntPtr window, System.Windows.Forms.FormWindowState newstate)
         {
             const int SW_SHOWNORMAL = 1;
@@ -255,9 +245,48 @@ namespace SharpTools
         }
 
         /// <summary>
+        /// Get executable name of the foreground window
+        /// </summary>
+        /// <returns>Exe name or NULL if could not find window</returns>
+        public static string GetActiveWindowExeName()
+        {
+            try
+            {
+                IntPtr hwnd = GetForegroundWindow();
+                uint pid;
+                GetWindowThreadProcessId(hwnd, out pid);
+                System.Diagnostics.Process p = System.Diagnostics.Process.GetProcessById((int)pid);
+                try
+                {
+                    return System.IO.Path.GetFileName(p.MainModule.FileName);
+                }
+                catch
+                {
+                    return p.ProcessName + ".exe";
+                }
+            }
+            catch
+            {
+                const int nChars = 1024;
+                IntPtr handle = IntPtr.Zero;
+                StringBuilder Buff = new StringBuilder(nChars);
+                handle = GetForegroundWindow();
+
+                if (GetWindowModuleFileName(handle, Buff, nChars) > 0)
+                {
+                    try
+                    {
+                        return System.IO.Path.GetFileName(Buff.ToString());
+                    }
+                    catch { return Buff.ToString(); }
+                }
+                return null;
+            }
+        }
+
+        /// <summary>
         /// Check for a fullscreen app window (media player, game...)
         /// </summary>
-
         public static bool isFullScreenAppActive
         {
             get
@@ -280,10 +309,9 @@ namespace SharpTools
         /// <summary>
         /// Kill a process by Exe name
         /// </summary>
-
-        public static void killExe(string exename)
+        public static void killExe(string exeName)
         {
-            ProcessStartInfo P = new ProcessStartInfo("taskkill", "/f /im " + exename);
+            ProcessStartInfo P = new ProcessStartInfo("taskkill", "/f /im " + exeName);
             P.WindowStyle = ProcessWindowStyle.Hidden;
             Process.Start(P).WaitForExit();
         }
@@ -291,7 +319,6 @@ namespace SharpTools
         /// <summary>
         /// Check for another instance of this program
         /// </summary>
-
         public static bool IsSingleInstance
         {
             get
