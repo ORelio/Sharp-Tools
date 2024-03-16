@@ -4,7 +4,7 @@ using System.IO;
 using System.Text;
 using System.Threading;
 
-namespace MinecraftClient
+namespace SharpTools
 {
     /// <summary>
     /// Monitor file changes on disk
