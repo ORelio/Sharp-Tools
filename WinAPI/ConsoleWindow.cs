@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Drawing;
 using System.Runtime.InteropServices;
+using System.IO;
+using System.Text;
 
 namespace SharpTools
 {
@@ -19,9 +21,16 @@ namespace SharpTools
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern bool SetConsoleIcon(IntPtr hIcon);
 
+        [DllImport("kernel32.dll", EntryPoint = "GetStdHandle", SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.StdCall)]
+        public static extern IntPtr GetStdHandle(int nStdHandle);
+
+        [DllImport("kernel32.dll", EntryPoint = "AllocConsole", SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.StdCall)]
+        public static extern int AllocConsole();
+
         private const int SW_HIDE = 0;
         private const int SW_SHOW = 5;
 
+        private const int STD_OUTPUT_HANDLE = -11;
         private static IntPtr windowHandle = IntPtr.Zero;
 
         /// <summary>
@@ -42,7 +51,7 @@ namespace SharpTools
         /// </summary>
         public static void SetIcon(Icon icon)
         {
-            if (windowHandle != IntPtr.Zero)
+            if (IsAllocated())
                 SetConsoleIcon(icon.Handle);
         }
 
@@ -51,7 +60,7 @@ namespace SharpTools
         /// </summary>
         public static void SetIcon(string iconFile)
         {
-            if (windowHandle != IntPtr.Zero)
+            if (IsAllocated())
                 SetConsoleIcon(Icon.ExtractAssociatedIcon(iconFile).Handle);
         }
 
@@ -60,8 +69,35 @@ namespace SharpTools
         /// </summary>
         public static void ResetIcon()
         {
-            if (windowHandle != IntPtr.Zero)
+            if (IsAllocated())
                 SetConsoleIcon(Icon.ExtractAssociatedIcon(Environment.SystemDirectory + "\\cmd.exe").Handle);
+        }
+
+        /// <summary>
+        /// Check if a console window is currently allocated
+        /// </summary>
+        /// <returns>TRUE if the console window exists</returns>
+        public static bool IsAllocated()
+        {
+            return windowHandle != IntPtr.Zero;
+        }
+
+        /// <summary>
+        /// Create console window if the application was not a console application
+        /// </summary>
+        public static void Allocate()
+        {
+            if (windowHandle == IntPtr.Zero)
+            {
+                AllocConsole();
+                IntPtr stdHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+                Microsoft.Win32.SafeHandles.SafeFileHandle safeFileHandle = new Microsoft.Win32.SafeHandles.SafeFileHandle(stdHandle, true);
+                FileStream fileStream = new FileStream(safeFileHandle, FileAccess.Write);
+                StreamWriter standardOutput = new StreamWriter(fileStream, Console.OutputEncoding);
+                standardOutput.AutoFlush = true;
+                Console.SetOut(standardOutput);
+            }
+            windowHandle = GetConsoleWindow();
         }
 
         /// <summary>
@@ -69,7 +105,7 @@ namespace SharpTools
         /// </summary>
         public static void Hide()
         {
-            if (windowHandle != IntPtr.Zero)
+            if (IsAllocated())
                 ShowWindow(windowHandle, SW_HIDE);
         }
 
@@ -78,7 +114,7 @@ namespace SharpTools
         /// </summary>
         public static void Show()
         {
-            if (windowHandle != IntPtr.Zero)
+            if (IsAllocated())
                 ShowWindow(windowHandle, SW_SHOW);
         }
     }
