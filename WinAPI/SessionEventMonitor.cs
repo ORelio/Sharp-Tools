@@ -103,6 +103,8 @@ namespace SharpTools
             this.Size = new System.Drawing.Size(1, 1);
             this.GotFocus += new EventHandler(WindowFocused); // Evade focus - See WindowFocused() below
             this.Text = "�"; // Avoid screen readers saying the window title loud - See WindowFocused() below
+            this.LocationChanged += new EventHandler(OnLocationChanged); // Relocate on screen layout change
+            this.Resize += new EventHandler(OnResize); // Make sure the window is not automatically minimized
 
             HandleStartupOrLogon();
             SystemEvents.SessionEnding += new SessionEndingEventHandler(SessionEvents_SessionEnding);
@@ -173,10 +175,6 @@ namespace SharpTools
             // Try switching focus to desktop, or as fallback, toggle the minimized state
             try
             {
-                // Cannot stay minimized because it may show a window title next to the task bar
-                this.WindowState = FormWindowState.Minimized;
-                this.WindowState = FormWindowState.Normal;
-
                 // Switch focus to the Windows Desktop's folderView
                 IntPtr desktop = IntPtr.Zero;
                 if (WindowManager.GetDesktopWindow(ref desktop))
@@ -186,6 +184,29 @@ namespace SharpTools
             {
                 // Avoid crashes linked to this workaround
             }
+        }
+
+        /// <summary>
+        /// Make sure the window stays outside the screen.
+        /// Screen layout change may place the window back into visible area.
+        /// </summary>
+        private void OnLocationChanged(object sender, EventArgs e)
+        {
+            this.LocationChanged -= new EventHandler(OnLocationChanged);
+            this.Location = new System.Drawing.Point(-9999, -9999);
+            this.LocationChanged += new EventHandler(OnLocationChanged);
+        }
+
+        /// <summary>
+        /// On some conditions, the system may automatically minimize the window.
+        /// Cannot stay minimized because it may show a window title box next to the task bar.
+        /// </summary>
+        private void OnResize(object sender, EventArgs e)
+        {
+            this.Resize -= new EventHandler(OnResize);
+            if (WindowState == FormWindowState.Minimized)
+                this.WindowState = FormWindowState.Normal;
+            this.Resize += new EventHandler(OnResize);
         }
     }
 }
